@@ -28,12 +28,22 @@
 #define INDI_FULL_NAME "Price Proximity Oscillator"
 #define INDI_SHORT_NAME "PPO"
 
+// Indicator properties.
+#ifdef __MQL__
 #property indicator_separate_window
 #property indicator_buffers 2
-#property indicator_color1 Red
-#property indicator_color2 Green
+#property indicator_plots   2
+#property indicator_label1  "Low Proximity"
+#property indicator_label2  "High Proximity"
+#property indicator_color1  clrRed
+#property indicator_color2  clrBlue
+#property indicator_style1  STYLE_SOLID
+#property indicator_style2  STYLE_SOLID
+#property indicator_width1  2
+#property indicator_width2  2
+#endif
 
-// Define indicator buffers
+// Indicator buffers.
 double HighProximityBuffer[];
 double LowProximityBuffer[];
 
@@ -43,41 +53,93 @@ double LowProximityBuffer[];
 #property description INDI_FULL_NAME
 #endif
 
-//+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
-//+------------------------------------------------------------------+
-int OnInit() {
-  // Set indicator label
-  IndicatorShortName(INDI_SHORT_NAME);
+// Includes.
+#include <EA31337-classes/Indicator.define.h>
 
-  // Set indicator buffers
-  SetIndexBuffer(0, HighProximityBuffer);
-  SetIndexBuffer(1, LowProximityBuffer);
+// Input parameters.
+input ENUM_TIMEFRAMES InTf = PERIOD_H1; // Timeframe for proximity calculation.
+input ENUM_APPLIED_PRICE InAppliedPrice = PRICE_CLOSE; // Price type for calculation.
 
-  return (INIT_SUCCEEDED);
-}
+/**
+ * Initizalization.
+ */
+int OnInit()
+  {
+   // Indicator buffers mapping
+   SetIndexBuffer(0, LowProximityBuffer);
+   SetIndexBuffer(1, HighProximityBuffer);
+   
+   PlotIndexSetInteger(0, PLOT_DRAW_TYPE, DRAW_LINE);
+   PlotIndexSetInteger(0, PLOT_LINE_STYLE, STYLE_SOLID);
+   PlotIndexSetInteger(0, PLOT_LINE_WIDTH, 1);
+   PlotIndexSetInteger(0, PLOT_LINE_COLOR, clrRed);
 
-//+------------------------------------------------------------------+
-//| Custom indicator iteration function                              |
-//+------------------------------------------------------------------+
+   PlotIndexSetInteger(1, PLOT_DRAW_TYPE, DRAW_LINE);
+   PlotIndexSetInteger(1, PLOT_LINE_STYLE, STYLE_SOLID);
+   PlotIndexSetInteger(1, PLOT_LINE_WIDTH, 1);
+   PlotIndexSetInteger(1, PLOT_LINE_COLOR, clrBlue);
+
+   return(INIT_SUCCEEDED);
+  }
+
+/**
+ * Proximity calculation function.
+ */
 int OnCalculate(const int rates_total, const int prev_calculated,
                 const datetime &time[], const double &open[],
                 const double &high[], const double &low[],
                 const double &close[], const long &tick_volume[],
-                const long &volume[], const int &spread[]) {
-  // Calculate daily high and low
-  double daily_high = High[0];
-  double daily_low = Low[0];
+                const long &volume[], const int &spread[])
+  {
+   //--- calculate start position
+   int start = prev_calculated > 0 ? prev_calculated - 1 : 0;
 
-  // Calculate proximity in percentage
-  double high_proximity =
-      100.0 * (daily_high - close[0]) / (daily_high - daily_low);
-  double low_proximity =
-      100.0 * (close[0] - daily_low) / (daily_high - daily_low);
+   //--- main loop
+   for (int i = start; i < rates_total; i++)
+     {
+      // Find the corresponding bar in the external timeframe
+      int corresponding_bar = iBarShift(NULL, InTf, time[i]);
+      
+      if(corresponding_bar == -1)
+         continue; // If no corresponding bar, skip calculation
 
-  // Set indicator values in buffers
-  HighProximityBuffer[0] = high_proximity;
-  LowProximityBuffer[0] = low_proximity;
+      // Get the high and low of the corresponding bar in the selected timeframe
+      double highestHigh = iHigh(NULL, InTf, corresponding_bar);
+      double lowestLow = iLow(NULL, InTf, corresponding_bar);
+      
+      // Calculate the price based on the selected InAppliedPrice
+      double currentPrice = iCustomPrice(NULL, InTf, corresponding_bar, InAppliedPrice);
 
-  return (rates_total);
-}
+      // Calculate proximity percentages
+      if(highestHigh != lowestLow) // Prevent division by zero
+      {
+         LowProximityBuffer[i] = (currentPrice - lowestLow) / (highestHigh - lowestLow) * 100.0;
+         HighProximityBuffer[i] = (highestHigh - currentPrice) / (highestHigh - lowestLow) * 100.0;
+      }
+      else
+      {
+         LowProximityBuffer[i] = 50.0;
+         HighProximityBuffer[i] = 50.0;
+      }
+     }
+
+   return(rates_total);
+  }
+
+/**
+ * Custom function to get the price based on ENUM_APPLIED_PRICE.
+ */
+double iCustomPrice(const string symbol, ENUM_TIMEFRAMES timeframe, int index, ENUM_APPLIED_PRICE _ap)
+  {
+   switch(_ap)
+     {
+      case PRICE_CLOSE:      return iClose(symbol, timeframe, index);
+      case PRICE_OPEN:       return iOpen(symbol, timeframe, index);
+      case PRICE_HIGH:       return iHigh(symbol, timeframe, index);
+      case PRICE_LOW:        return iLow(symbol, timeframe, index);
+      case PRICE_MEDIAN:     return (iHigh(symbol, timeframe, index) + iLow(symbol, timeframe, index)) / 2.0;
+      case PRICE_TYPICAL:    return (iHigh(symbol, timeframe, index) + iLow(symbol, timeframe, index) + iClose(symbol, timeframe, index)) / 3.0;
+      case PRICE_WEIGHTED:   return (iHigh(symbol, timeframe, index) + iLow(symbol, timeframe, index) + 2 * iClose(symbol, timeframe, index)) / 4.0;
+      default:               return iClose(symbol, timeframe, index);  // Default to close price.
+     }
+  }
