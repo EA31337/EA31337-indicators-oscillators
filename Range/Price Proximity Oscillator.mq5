@@ -68,7 +68,7 @@ int OnInit()
    // Indicator buffers mapping
    SetIndexBuffer(0, LowProximityBuffer);
    SetIndexBuffer(1, HighProximityBuffer);
-   
+
    PlotIndexSetInteger(0, PLOT_DRAW_TYPE, DRAW_LINE);
    PlotIndexSetInteger(0, PLOT_LINE_STYLE, STYLE_SOLID);
    PlotIndexSetInteger(0, PLOT_LINE_WIDTH, 1);
@@ -99,14 +99,14 @@ int OnCalculate(const int rates_total, const int prev_calculated,
      {
       // Find the corresponding bar in the external timeframe
       int corresponding_bar = iBarShift(NULL, InTf, time[i]);
-      
+
       if(corresponding_bar == -1)
          continue; // If no corresponding bar, skip calculation
 
       // Get the high and low of the corresponding bar in the selected timeframe
       double highestHigh = iHigh(NULL, InTf, corresponding_bar);
       double lowestLow = iLow(NULL, InTf, corresponding_bar);
-      
+
       // Calculate the price based on the selected InAppliedPrice
       double currentPrice = iCustomPrice(NULL, InTf, corresponding_bar, InAppliedPrice);
 
