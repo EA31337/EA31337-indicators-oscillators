@@ -29,15 +29,15 @@
 #ifdef __MQL__
 #property indicator_separate_window
 #property indicator_buffers 2
-#property indicator_plots   2
-#property indicator_label1  "Low Proximity"
-#property indicator_label2  "High Proximity"
-#property indicator_color1  clrRed
-#property indicator_color2  clrBlue
-#property indicator_style1  STYLE_SOLID
-#property indicator_style2  STYLE_SOLID
-#property indicator_width1  2
-#property indicator_width2  2
+#property indicator_plots 2
+#property indicator_label1 "Low Proximity"
+#property indicator_label2 "High Proximity"
+#property indicator_color1 clrRed
+#property indicator_color2 clrBlue
+#property indicator_style1 STYLE_SOLID
+#property indicator_style2 STYLE_SOLID
+#property indicator_width1 2
+#property indicator_width2 2
 #endif
 
 // Includes the main code.
