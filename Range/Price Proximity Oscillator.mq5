@@ -33,8 +33,12 @@
 #property indicator_separate_window
 #property indicator_buffers 2
 #property indicator_plots   2
+#property indicator_minimum 0
+#property indicator_maximum 100
 #property indicator_label1  "Low Proximity"
 #property indicator_label2  "High Proximity"
+#property indicator_level1 20
+#property indicator_level2 80
 #property indicator_color1  clrRed
 #property indicator_color2  clrBlue
 #property indicator_style1  STYLE_SOLID
@@ -57,8 +61,8 @@ double LowProximityBuffer[];
 #include <EA31337-classes/Indicator.define.h>
 
 // Input parameters.
-input ENUM_TIMEFRAMES InTf = PERIOD_H1; // Timeframe for proximity calculation.
-input ENUM_APPLIED_PRICE InAppliedPrice = PRICE_CLOSE; // Price type for calculation.
+input ENUM_TIMEFRAMES InTf = PERIOD_D1; // Timeframe for proximity calculation.
+input ENUM_APPLIED_PRICE InAppliedPrice = PRICE_OPEN; // Price type for calculation.
 
 /**
  * Initizalization.
@@ -100,8 +104,9 @@ int OnCalculate(const int rates_total, const int prev_calculated,
       // Find the corresponding bar in the external timeframe
       int corresponding_bar = iBarShift(NULL, InTf, time[i]);
 
-      if(corresponding_bar == -1)
+      if (corresponding_bar == -1) {
          continue; // If no corresponding bar, skip calculation
+      }
 
       // Get the high and low of the corresponding bar in the selected timeframe
       double highestHigh = iHigh(NULL, InTf, corresponding_bar);
